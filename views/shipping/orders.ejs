@@ -6,16 +6,39 @@
     <div class="row mt-4">
         <div class="col-12">
             <h3>Ordini da Spedire</h3>
+            <% if (pagination) { %>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        Mostrando <%= (pagination.currentPage - 1) * pagination.perPage + 1 %> - 
+                        <%= Math.min(pagination.currentPage * pagination.perPage, pagination.totalOrders) %> 
+                        di <%= pagination.totalOrders %> ordini
+                    </div>
+                    <div>
+                        <select id="perPage" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="10" <%= pagination.perPage === 10 ? 'selected' : '' %>>10 per pagina</option>
+                            <option value="25" <%= pagination.perPage === 25 ? 'selected' : '' %>>25 per pagina</option>
+                            <option value="50" <%= pagination.perPage === 50 ? 'selected' : '' %>>50 per pagina</option>
+                        </select>
+                    </div>
+                </div>
+            <% } %>
+            <div class="mb-3">
+                <button id="massShipButton" class="btn btn-primary" disabled>
+                    Crea Spedizioni Selezionate
+                </button>
+            </div>
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAll" /></th>
                             <th>ID Ordine</th>
                             <th>Cliente</th>
                             <th>Indirizzo</th>
                             <th>Data Ordine</th>
                             <th>Stato</th>
                             <th>Pagamento</th>
+                            <th>Spedizione</th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -23,6 +46,11 @@
                         <% if (orders && orders.length > 0) { %>
                             <% orders.forEach(function(order) { %>
                                 <tr>
+                                    <td>
+                                        <% if (!order.isShipped) { %>
+                                            <input type="checkbox" class="order-select" data-order-id="<%= order.orderId %>" />
+                                        <% } %>
+                                    </td>
                                     <td>#<%= order.orderId %></td>
                                     <td>
                                         <%= order.firstName %> <%= order.lastName %>
@@ -47,29 +75,73 @@
                                             <span class="badge bg-info">In Lavorazione</span>
                                         <% } else if (order.status === 'on-hold') { %>
                                             <span class="badge bg-warning">In Attesa</span>
+                                        <% } else if (order.status === 'completed') { %>
+                                            <span class="badge bg-success">Completato</span>
                                         <% } else { %>
                                             <span class="badge bg-secondary"><%= order.status %></span>
                                         <% } %>
                                     </td>
                                     <td><small><%= order.payment_method %></small></td>
                                     <td>
-                                        <button class="btn btn-primary btn-sm create-shipment" 
-                                                data-order-id="<%= order.orderId %>"
-                                                data-bs-toggle="tooltip"
-                                                title="Crea spedizione BRT">
-                                            <i class="fas fa-truck"></i> Crea Spedizione
-                                        </button>
+                                        <% if (order.isShipped) { %>
+                                            <span class="badge bg-success">Spedito</span>
+                                            <% if (order.trackingNumber) { %>
+                                                <br><small>Track: <%= order.trackingNumber %></small>
+                                            <% } %>
+                                        <% } else { %>
+                                            <span class="badge bg-warning">Da Spedire</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (!order.isShipped) { %>
+                                            <button class="btn btn-primary btn-sm create-shipment" 
+                                                    data-order-id="<%= order.orderId %>"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Crea spedizione BRT">
+                                                <i class="fas fa-truck"></i> Crea Spedizione
+                                            </button>
+                                        <% } else { %>
+                                            <a href="/shipping/label/<%= order.orderId %>" 
+                                               class="btn btn-info btn-sm"
+                                               target="_blank"
+                                               data-bs-toggle="tooltip"
+                                               title="Stampa etichetta BRT">
+                                                <i class="fas fa-print"></i> Stampa Etichetta
+                                            </a>
+                                        <% } %>
                                     </td>
                                 </tr>
                             <% }); %>
                         <% } else { %>
                             <tr>
-                                <td colspan="7" class="text-center">Nessun ordine da spedire</td>
+                                <td colspan="8" class="text-center">Nessun ordine trovato</td>
                             </tr>
                         <% } %>
                     </tbody>
                 </table>
             </div>
+
+            <% if (pagination && pagination.totalPages > 1) { %>
+                <nav aria-label="Navigazione pagine" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                            <a class="page-link" href="?page=1&per_page=<%= pagination.perPage %>" aria-label="Prima">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <% for(let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) { %>
+                            <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                                <a class="page-link" href="?page=<%= i %>&per_page=<%= pagination.perPage %>"><%= i %></a>
+                            </li>
+                        <% } %>
+                        <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                            <a class="page-link" href="?page=<%= pagination.totalPages %>&per_page=<%= pagination.perPage %>" aria-label="Ultima">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            <% } %>
         </div>
     </div>
 
@@ -210,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Verifica se la tabella degli ordini è vuota
                         const ordersTable = document.querySelector('.table:first-child tbody');
                         if (ordersTable && ordersTable.children.length === 0) {
-                            ordersTable.innerHTML = '<tr><td colspan="7" class="text-center">Nessun ordine da spedire</td></tr>';
+                            ordersTable.innerHTML = '<tr><td colspan="8" class="text-center">Nessun ordine da spedire</td></tr>';
                         }
                     }, 400);
 
@@ -255,6 +327,68 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             alert('Errore durante il reset: ' + error.message);
+        }
+    });
+
+    // Gestione cambio numero di elementi per pagina
+    document.getElementById('perPage').addEventListener('change', function() {
+        window.location.href = `?page=1&per_page=${this.value}`;
+    });
+
+    const selectAll = document.getElementById('selectAll');
+    const orderCheckboxes = document.querySelectorAll('.order-select');
+    const massShipButton = document.getElementById('massShipButton');
+
+    // Gestisce il select all
+    selectAll.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+        updateMassShipButton();
+    });
+
+    // Gestisce le singole selezioni
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateMassShipButton();
+            // Aggiorna select all se necessario
+            selectAll.checked = Array.from(orderCheckboxes).every(cb => cb.checked);
+        });
+    });
+
+    // Abilita/disabilita il pulsante di spedizione massiva
+    function updateMassShipButton() {
+        const selectedCount = document.querySelectorAll('.order-select:checked').length;
+        massShipButton.disabled = selectedCount === 0;
+        massShipButton.textContent = `Crea Spedizioni Selezionate (${selectedCount})`;
+    }
+
+    // Gestisce la spedizione massiva
+    massShipButton.addEventListener('click', async function() {
+        const selectedOrders = Array.from(document.querySelectorAll('.order-select:checked'))
+            .map(checkbox => checkbox.dataset.orderId);
+        
+        if (confirm(`Vuoi creare ${selectedOrders.length} spedizioni?`)) {
+            try {
+                const response = await fetch('/shipping/mass-create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ orderIds: selectedOrders })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Spedizioni create con successo!');
+                    window.location.reload();
+                } else {
+                    alert('Errore durante la creazione delle spedizioni: ' + result.error);
+                }
+            } catch (error) {
+                alert('Errore durante la richiesta: ' + error.message);
+            }
         }
     });
 });

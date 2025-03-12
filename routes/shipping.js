@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const shippingService = require('../services/shipping');
+const bartolini = require('../services/bartolini');
 const woocommerce = require('../services/woocommerce');
 
 // Middleware di autenticazione
@@ -16,22 +16,35 @@ const authMiddleware = (req, res, next) => {
 // Lista ordini da spedire
 router.get('/orders', authMiddleware, async (req, res) => {
     try {
-        // Recupera gli ordini da WooCommerce
+        const page = parseInt(req.query.page) || 1;
+        const perPage = parseInt(req.query.per_page) || 10;
+
+        // Recupera TUTTI gli ordini da WooCommerce
         const wooOrders = await woocommerce.getOrders({ 
-            status: ['processing', 'on-hold'],
-            per_page: 50
+            status: ['processing', 'on-hold', 'completed'],
+            per_page: 100,  // Massimo numero di ordini per richiesta
+            page: 1
         });
         
         console.log('Ordini WooCommerce ricevuti:', wooOrders.length);
 
         // Recupera le spedizioni già create
-        const shipments = await shippingService.getShipments();
+        const shipmentsFile = path.join(process.cwd(), 'data', 'shipments.json');
+        let shipments = [];
+        try {
+            const data = await fs.promises.readFile(shipmentsFile, 'utf8');
+            shipments = JSON.parse(data);
+        } catch (error) {
+            // Se il file non esiste, usa array vuoto
+        }
         const shippedOrderIds = shipments.map(s => s.orderId);
 
         // Formatta gli ordini per la visualizzazione
-        const orders = wooOrders
-            .filter(order => !shippedOrderIds.includes(order.id.toString()))
-            .map(order => ({
+        const allOrders = wooOrders.map(order => {
+            const isShipped = shippedOrderIds.includes(order.id.toString());
+            const shipment = isShipped ? shipments.find(s => s.orderId === order.id.toString()) : null;
+            
+            return {
                 orderId: order.id.toString(),
                 firstName: order.shipping.first_name,
                 lastName: order.shipping.last_name,
@@ -45,15 +58,27 @@ router.get('/orders', authMiddleware, async (req, res) => {
                 date_created: order.date_created,
                 status: order.status,
                 total: order.total,
-                payment_method: order.payment_method_title
-            }));
+                payment_method: order.payment_method_title,
+                isShipped: isShipped,
+                trackingNumber: shipment?.trackingNumber || null
+            };
+        });
 
-        console.log('Ordini formattati:', orders);
+        // Calcola gli indici per la paginazione
+        const startIndex = (page - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        const paginatedOrders = allOrders.slice(startIndex, endIndex);
 
         res.render('shipping/orders', {
             title: 'Gestione Spedizioni',
-            orders: orders,
-            shipments: shipments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            orders: paginatedOrders,
+            shipments: shipments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(allOrders.length / perPage),
+                perPage: perPage,
+                totalOrders: allOrders.length
+            }
         });
     } catch (error) {
         console.error('Error loading orders:', error);
@@ -82,20 +107,40 @@ router.post('/create/:orderId', authMiddleware, async (req, res) => {
             address: order.shipping.address_1,
             city: order.shipping.city,
             postcode: order.shipping.postcode,
-            province: order.shipping.state || '',
             email: order.billing.email,
-            phone: order.billing.phone || '',
-            weight: parseFloat(order.shipping_lines?.[0]?.total || 1.0)
+            phone: order.billing.phone || ''
         };
 
         console.log('Dati spedizione:', shipmentData);
 
         // Crea la spedizione BRT
         console.log('📦 Creazione spedizione BRT per ordine:', orderId);
-        const shipment = await shippingService.createBRTShipment(shipmentData);
+        const result = await bartolini.generateLabel(shipmentData);
         
         // Se arriviamo qui, la spedizione è stata creata e l'etichetta salvata
-        console.log('✅ Spedizione creata con successo:', shipment.trackingNumber);
+        console.log('✅ Spedizione creata con successo:', result.trackingNumber);
+        
+        // Salva i dati della spedizione
+        const shipmentsFile = path.join(process.cwd(), 'data', 'shipments.json');
+        let shipments = [];
+        try {
+            const data = await fs.promises.readFile(shipmentsFile, 'utf8');
+            shipments = JSON.parse(data);
+        } catch (error) {
+            // Se il file non esiste, usa array vuoto
+        }
+
+        shipments.push({
+            success: true,
+            orderId: orderId,
+            trackingNumber: result.trackingNumber,
+            labelPath: result.pdfPath,
+            ...shipmentData,
+            createdAt: new Date().toISOString(),
+            status: 'created'
+        });
+
+        await fs.promises.writeFile(shipmentsFile, JSON.stringify(shipments, null, 2));
         
         try {
             // Prova ad aggiornare WooCommerce
@@ -103,7 +148,7 @@ router.post('/create/:orderId', authMiddleware, async (req, res) => {
             await woocommerce.updateOrder(orderId, {
                 status: 'completed',
                 meta_data: [
-                    { key: 'tracking_number', value: shipment.trackingNumber }
+                    { key: 'tracking_number', value: result.trackingNumber }
                 ]
             });
             console.log('✅ Ordine aggiornato su WooCommerce');
@@ -117,7 +162,7 @@ router.post('/create/:orderId', authMiddleware, async (req, res) => {
         res.json({
             success: true,
             message: 'Spedizione creata con successo',
-            shipment: shipment
+            trackingNumber: result.trackingNumber
         });
 
     } catch (error) {
@@ -135,9 +180,16 @@ router.get('/label/:orderId', authMiddleware, async (req, res) => {
         const orderId = req.params.orderId;
         console.log('📄 Richiesta download etichetta per ordine:', orderId);
         
-        const shipments = await shippingService.getShipments();
-        const shipment = shipments.find(s => s.orderId === orderId);
+        const shipmentsFile = path.join(process.cwd(), 'data', 'shipments.json');
+        let shipments = [];
+        try {
+            const data = await fs.promises.readFile(shipmentsFile, 'utf8');
+            shipments = JSON.parse(data);
+        } catch (error) {
+            throw new Error('Nessuna spedizione trovata');
+        }
 
+        const shipment = shipments.find(s => s.orderId === orderId);
         if (!shipment || !shipment.labelPath) {
             console.error('❌ Etichetta non trovata per ordine:', orderId);
             throw new Error('Etichetta non trovata');
@@ -202,6 +254,70 @@ router.post('/reset-orders', authMiddleware, async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message
+        });
+    }
+});
+
+// Rotta per la creazione massiva di spedizioni
+router.post('/mass-create', async (req, res) => {
+    try {
+        const { orderIds } = req.body;
+        
+        if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Nessun ordine selezionato' 
+            });
+        }
+
+        const results = [];
+        const errors = [];
+
+        // Processa gli ordini in serie per evitare sovraccarichi
+        for (const orderId of orderIds) {
+            try {
+                const orderData = await woocommerce.getOrder(orderId);
+                const result = await bartolini.generateLabel(orderData);
+                
+                if (result.success) {
+                    // Aggiorna l'ordine su WooCommerce con il tracking
+                    await woocommerce.updateOrder(orderId, {
+                        status: 'completed',
+                        meta_data: [
+                            {
+                                key: '_tracking_number',
+                                value: result.trackingNumber
+                            }
+                        ]
+                    });
+                    
+                    results.push({
+                        orderId,
+                        success: true,
+                        trackingNumber: result.trackingNumber
+                    });
+                }
+            } catch (error) {
+                console.error(`Errore per ordine ${orderId}:`, error);
+                errors.push({
+                    orderId,
+                    error: error.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            results,
+            errors,
+            message: `Processati ${results.length} ordini con successo, ${errors.length} errori`
+        });
+
+    } catch (error) {
+        console.error('Errore nella creazione massiva:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
