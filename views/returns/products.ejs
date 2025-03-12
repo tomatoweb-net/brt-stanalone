@@ -1,0 +1,47 @@
+<%- include('../partials/header') %>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Seleziona i Prodotti da Rendere</h2>
+                
+                <form action="/returns/submit" method="POST">
+                    <input type="hidden" name="orderId" value="<%= orderId %>">
+                    
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Seleziona</th>
+                                    <th>Prodotto</th>
+                                    <th>Quantità</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% items.forEach(item => { %>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="products[]" value="<%= item.id %>">
+                                            </div>
+                                        </td>
+                                        <td><%= item.name %></td>
+                                        <td><%= item.quantity %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Richiedi Reso</button>
+                        <a href="/returns" class="btn btn-secondary">Annulla</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %> 

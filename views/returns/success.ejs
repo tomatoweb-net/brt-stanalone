@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body text-center">
+                <h2 class="card-title mb-4">Reso Richiesto con Successo</h2>
+                
+                <div class="alert alert-success mb-4">
+                    <p class="mb-0">La tua richiesta di reso è stata registrata.</p>
+                    <p class="mb-0">Numero di riferimento: <%= returnId %></p>
+                </div>
+
+                <p>Riceverai una notifica quando la tua richiesta sarà approvata.</p>
+                
+                <div class="d-grid gap-2">
+                    <a href="/" class="btn btn-primary">Torna alla Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %> 

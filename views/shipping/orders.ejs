@@ -1,0 +1,263 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <h1>Gestione Spedizioni</h1>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Ordini da Spedire</h3>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID Ordine</th>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Data Ordine</th>
+                            <th>Stato</th>
+                            <th>Pagamento</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (orders && orders.length > 0) { %>
+                            <% orders.forEach(function(order) { %>
+                                <tr>
+                                    <td>#<%= order.orderId %></td>
+                                    <td>
+                                        <%= order.firstName %> <%= order.lastName %>
+                                        <% if (order.company) { %>
+                                            <br><small><%= order.company %></small>
+                                        <% } %>
+                                        <br><small><%= order.email %></small>
+                                    </td>
+                                    <td>
+                                        <%= order.address %><br>
+                                        <%= order.postcode %> <%= order.city %> (<%= order.province %>)<br>
+                                        <% if (order.phone) { %>
+                                            <small>Tel: <%= order.phone %></small>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <%= new Date(order.date_created).toLocaleDateString() %>
+                                        <br><small>€ <%= parseFloat(order.total).toFixed(2) %></small>
+                                    </td>
+                                    <td>
+                                        <% if (order.status === 'processing') { %>
+                                            <span class="badge bg-info">In Lavorazione</span>
+                                        <% } else if (order.status === 'on-hold') { %>
+                                            <span class="badge bg-warning">In Attesa</span>
+                                        <% } else { %>
+                                            <span class="badge bg-secondary"><%= order.status %></span>
+                                        <% } %>
+                                    </td>
+                                    <td><small><%= order.payment_method %></small></td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm create-shipment" 
+                                                data-order-id="<%= order.orderId %>"
+                                                data-bs-toggle="tooltip"
+                                                title="Crea spedizione BRT">
+                                            <i class="fas fa-truck"></i> Crea Spedizione
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="text-center">Nessun ordine da spedire</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Spedizioni Effettuate</h3>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID Ordine</th>
+                            <th>Tracking Number</th>
+                            <th>Cliente</th>
+                            <th>Data Spedizione</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (shipments && shipments.length > 0) { %>
+                            <% shipments.forEach(function(shipment) { %>
+                                <tr>
+                                    <td>#<%= shipment.orderId %></td>
+                                    <td><%= shipment.trackingNumber %></td>
+                                    <td>
+                                        <%= shipment.firstName %> <%= shipment.lastName %>
+                                        <% if (shipment.company) { %>
+                                            <br><small><%= shipment.company %></small>
+                                        <% } %>
+                                    </td>
+                                    <td><%= new Date(shipment.createdAt).toLocaleDateString() %></td>
+                                    <td>
+                                        <a href="/shipping/label/<%= shipment.orderId %>" 
+                                           class="btn btn-info btn-sm"
+                                           target="_blank">
+                                            <i class="fas fa-print"></i> Stampa Etichetta
+                                        </a>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="text-center">Nessuna spedizione effettuata</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button id="resetOrders" class="btn btn-warning">
+            <i class="fas fa-undo"></i> Reset Ordini Test
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inizializza i tooltip di Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Gestione click sui pulsanti "Crea Spedizione"
+    document.querySelectorAll('.create-shipment').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            
+            if (!confirm('Vuoi creare una spedizione BRT per l\'ordine #' + orderId + '?')) {
+                return;
+            }
+
+            // Disabilita il pulsante e mostra lo spinner
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creazione...';
+
+            // Chiamata AJAX per creare la spedizione
+            fetch('/shipping/create/' + orderId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Aggiorna la riga con il nuovo stato
+                    const row = this.closest('tr');
+                    row.querySelector('td:nth-child(5)').innerHTML = '<span class="badge bg-success">Completato</span>';
+                    
+                    // Sostituisce il pulsante con il link per la stampa
+                    const printBtn = `
+                        <a href="/shipping/label/${orderId}" 
+                           class="btn btn-info btn-sm"
+                           target="_blank"
+                           data-bs-toggle="tooltip"
+                           title="Stampa etichetta BRT">
+                            <i class="fas fa-print"></i> Stampa Etichetta
+                        </a>`;
+                    this.outerHTML = printBtn;
+                    
+                    // Reinizializza i tooltip
+                    const newTooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    newTooltips.map(el => new bootstrap.Tooltip(el));
+
+                    // Sposta la riga nella tabella delle spedizioni effettuate
+                    const shipmentRow = document.createElement('tr');
+                    shipmentRow.innerHTML = `
+                        <td>#${orderId}</td>
+                        <td>${data.trackingNumber}</td>
+                        <td>${row.querySelector('td:nth-child(2)').innerHTML}</td>
+                        <td>${new Date().toLocaleDateString()}</td>
+                        <td>${printBtn}</td>
+                    `;
+
+                    // Trova la tabella delle spedizioni effettuate
+                    const shipmentsTable = document.querySelector('.table:nth-child(2) tbody');
+                    if (shipmentsTable) {
+                        // Rimuovi il messaggio "Nessuna spedizione" se presente
+                        const emptyMessage = shipmentsTable.querySelector('td[colspan="5"]');
+                        if (emptyMessage) {
+                            emptyMessage.closest('tr').remove();
+                        }
+                        
+                        // Inserisci la nuova riga
+                        shipmentsTable.insertBefore(shipmentRow, shipmentsTable.firstChild);
+                    } else {
+                        console.error('Tabella delle spedizioni effettuate non trovata');
+                    }
+
+                    // Rimuovi la riga dalla tabella degli ordini con animazione
+                    row.style.transition = 'opacity 0.4s';
+                    row.style.opacity = '0';
+                    setTimeout(() => {
+                        row.remove();
+                        // Verifica se la tabella degli ordini è vuota
+                        const ordersTable = document.querySelector('.table:first-child tbody');
+                        if (ordersTable && ordersTable.children.length === 0) {
+                            ordersTable.innerHTML = '<tr><td colspan="7" class="text-center">Nessun ordine da spedire</td></tr>';
+                        }
+                    }, 400);
+
+                    // Notifica successo
+                    alert('✅ Spedizione creata con successo!\n\nTracking Number: ' + data.trackingNumber);
+                } else {
+                    alert('❌ Errore: ' + data.error);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-truck"></i> Crea Spedizione';
+                }
+            })
+            .catch(error => {
+                console.error('Errore AJAX:', error);
+                alert('❌ Errore: ' + (error.message || 'Errore di connessione al server'));
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-truck"></i> Crea Spedizione';
+            });
+        });
+    });
+
+    // Aggiungi questa funzione per il reset
+    document.getElementById('resetOrders').addEventListener('click', async function() {
+        if (!confirm('Sei sicuro di voler riportare tutti gli ordini spediti in "Da Spedire"?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/shipping/reset-orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Reset completato! La pagina verrà ricaricata.');
+                window.location.reload();
+            } else {
+                alert('Errore: ' + result.message);
+            }
+        } catch (error) {
+            alert('Errore durante il reset: ' + error.message);
+        }
+    });
+});
+</script>
+
+<%- include('../partials/footer') %> 

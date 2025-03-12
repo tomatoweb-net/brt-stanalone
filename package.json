@@ -1,0 +1,23 @@
+{
+  "name": "bartolini-returns",
+  "version": "1.0.0",
+  "description": "Sistema di gestione resi Bartolini",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "@woocommerce/woocommerce-rest-api": "^1.0.1",
+    "axios": "^1.6.7",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "moment": "^2.30.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}

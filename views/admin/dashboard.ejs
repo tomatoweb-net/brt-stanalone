@@ -1,0 +1,183 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestione Resi</h2>
+        <div>
+            <a href="/shipping/orders" class="btn btn-primary me-2">Gestione Spedizioni</a>
+            <a href="/admin/logout" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Ordine</th>
+                            <th>Cliente</th>
+                            <th>Prodotti</th>
+                            <th>Stato</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% returns.forEach(function(return_request) { %>
+                            <tr>
+                                <td><%= return_request.id %></td>
+                                <td><%= new Date(return_request.date).toLocaleDateString('it-IT') %></td>
+                                <td><%= return_request.orderId %></td>
+                                <td>
+                                    <%= return_request.customer.name %><br>
+                                    <small><%= return_request.customer.email %></small>
+                                </td>
+                                <td>
+                                    <% return_request.products.forEach(function(product) { %>
+                                        <div><%= product %></div>
+                                    <% }); %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= return_request.status === 'pending' ? 'warning' : (return_request.status === 'approved' ? 'success' : 'danger') %>">
+                                        <%= return_request.status %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <% if (return_request.status === 'pending') { %>
+                                        <button class="btn btn-sm btn-success approve-btn" 
+                                                data-return-id="<%= return_request.id %>"
+                                                data-order-id="<%= return_request.orderId %>"
+                                                data-customer-name="<%= return_request.customer.name %>"
+                                                data-customer-email="<%= return_request.customer.email %>"
+                                                data-customer-address="<%= return_request.customer.address %>"
+                                                data-customer-city="<%= return_request.customer.city %>"
+                                                data-customer-postcode="<%= return_request.customer.postcode %>">
+                                            Approva
+                                        </button>
+                                        <button class="btn btn-sm btn-danger reject-btn" data-return-id="<%= return_request.id %>">
+                                            Rifiuta
+                                        </button>
+                                    <% } %>
+                                    <% if (return_request.status === 'approved' && return_request.labelPath) { %>
+                                        <a href="/admin/label/<%= return_request.id %>" class="btn btn-sm btn-primary">
+                                            Scarica Etichetta
+                                        </a>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Document ready');
+    
+    function handleError(error) {
+        console.error('Error:', error);
+        const errorMessage = error.responseJSON?.message || error.statusText || 'Si è verificato un errore';
+        alert('Errore: ' + errorMessage);
+    }
+
+    document.querySelectorAll('.approve-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const data = {
+                returnId: this.dataset.returnId,
+                orderId: this.dataset.orderId,
+                customer: {
+                    name: this.dataset.customerName,
+                    email: this.dataset.customerEmail,
+                    address: this.dataset.customerAddress,
+                    city: this.dataset.customerCity,
+                    postcode: this.dataset.customerPostcode
+                }
+            };
+
+            console.log('Approve button clicked with data:', data);
+            
+            if (!data.returnId) {
+                console.error('No return ID found');
+                alert('Errore: ID reso non trovato');
+                return;
+            }
+            
+            if (confirm('Sei sicuro di voler approvare questo reso?')) {
+                this.disabled = true;
+                this.textContent = 'Generazione etichetta in corso...';
+                
+                fetch(`/admin/approve/${data.returnId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(response => {
+                    console.log('Success:', response);
+                    if (response.success) {
+                        alert('Reso approvato e etichetta generata con successo!');
+                        location.reload();
+                    } else {
+                        alert('Errore: ' + response.message);
+                        this.disabled = false;
+                        this.textContent = 'Approva';
+                    }
+                })
+                .catch(error => {
+                    handleError(error);
+                    this.disabled = false;
+                    this.textContent = 'Approva';
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll('.reject-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const returnId = this.dataset.returnId;
+            console.log('Reject button clicked for ID:', returnId);
+            
+            if (!returnId) {
+                console.error('No return ID found');
+                alert('Errore: ID reso non trovato');
+                return;
+            }
+            
+            if (confirm('Sei sicuro di voler rifiutare questo reso?')) {
+                this.disabled = true;
+                this.textContent = 'Rifiuto in corso...';
+                
+                fetch(`/admin/reject/${returnId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(response => {
+                    console.log('Success:', response);
+                    if (response.success) {
+                        alert('Reso rifiutato con successo');
+                        location.reload();
+                    } else {
+                        alert('Errore: ' + response.message);
+                        this.disabled = false;
+                        this.textContent = 'Rifiuta';
+                    }
+                })
+                .catch(error => {
+                    handleError(error);
+                    this.disabled = false;
+                    this.textContent = 'Rifiuta';
+                });
+            }
+        });
+    });
+});
+</script>
+
+<%- include('../partials/footer') %> 
