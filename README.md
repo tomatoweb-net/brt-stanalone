@@ -1,12 +1,10 @@
 # BRT Standalone Service
 
-Servizio standalone per l'integrazione con l'API BRT (Bartolini) per la generazione di etichette di spedizione e resi.
+Servizio standalone per l'integrazione con l'API BRT (Bartolini) per la generazione di etichette di spedizione.
 
 ## Funzionalità
 
 - Generazione etichette di spedizione
-- Generazione etichette di reso
-- Recupero etichette per spedizioni esistenti
 
 ## Configurazione
 
@@ -33,10 +31,17 @@ const bartoliniService = require('./services/bartolini');
 
 // Generare una nuova etichetta di spedizione
 const result = await bartoliniService.generateLabel(orderData);
+```
 
-// Generare un'etichetta di reso
-const returnResult = await bartoliniService.generateReturnLabel(orderData);
+### Formato orderData
 
-// Recuperare un'etichetta esistente
-const existingLabel = await bartoliniService.getShipmentLabel(parcelID, orderId);
-``` 
+```javascript
+const orderData = {
+    company: "Nome Azienda", // opzionale
+    firstName: "Nome",       // usato se company non è presente
+    lastName: "Cognome",     // usato se company non è presente
+    address: "Indirizzo di consegna",
+    postcode: "12345",
+    city: "Città",
+    orderId: "123456"       // numero ordine
+}; 

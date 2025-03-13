@@ -322,4 +322,65 @@ router.post('/mass-create', async (req, res) => {
     }
 });
 
+// Rotta per la lista stampabile delle spedizioni
+router.get('/print-list', async (req, res) => {
+    try {
+        const dateFilter = req.query.dateFilter || 'today';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let startDate, endDate;
+        
+        if (dateFilter === 'today') {
+            startDate = today;
+            endDate = new Date(today);
+            endDate.setHours(23, 59, 59, 999);
+        } else {
+            startDate = new Date(req.query.startDate || today);
+            endDate = new Date(req.query.endDate || today);
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(23, 59, 59, 999);
+        }
+
+        // Recupera tutti gli ordini spediti
+        const orders = await woocommerce.getOrders({
+            status: ['completed'],
+            per_page: 100
+        });
+
+        // Formatta i dati per la stampa
+        const shipments = orders.map(order => {
+            const shipping = order.shipping;
+            const trackingNumber = order.meta_data.find(meta => meta.key === 'tracking_number')?.value;
+            const orderDate = new Date(order.date_created);
+            
+            if (!trackingNumber) return null;
+
+            return {
+                date: order.date_created,
+                trackingNumber: trackingNumber,
+                orderNumber: order.number,
+                customerName: `${shipping.first_name} ${shipping.last_name}`,
+                address: `${shipping.address_1}, ${shipping.postcode} ${shipping.city}`
+            };
+        })
+        .filter(shipment => {
+            if (!shipment) return false;
+            const shipmentDate = new Date(shipment.date);
+            return shipmentDate >= startDate && shipmentDate <= endDate;
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        res.render('shipping/print-list', { 
+            shipments,
+            dateFilter,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+        });
+    } catch (error) {
+        console.error('Errore nel recupero delle spedizioni:', error);
+        res.status(500).send('Errore nel recupero delle spedizioni');
+    }
+});
+
 module.exports = router; 

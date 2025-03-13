@@ -93,7 +93,7 @@
     "id": 1741804091558,
     "orderId": "66451",
     "date": "2025-03-12T18:28:11.558Z",
-    "status": "pending",
+    "status": "rejected",
     "customer": {
       "name": "letizia sorrentino",
       "email": "ecletticamentepos@gmail.com",
@@ -103,7 +103,8 @@
     },
     "products": [
       null
-    ]
+    ],
+    "rejectedAt": "2025-03-12T19:23:59.447Z"
   },
   {
     "id": 1741806093730,
@@ -132,6 +133,64 @@
       "city": "Montesilvano",
       "postcode": "65015",
       "email": "afina55@alice.it"
+    }
+  },
+  {
+    "id": 1741809096570,
+    "orderId": "66437",
+    "date": "2025-03-12T19:51:36.570Z",
+    "status": "approved",
+    "customer": {
+      "name": "MARA MARONI",
+      "email": "mara.maroni62@gmail.com",
+      "address": "LARGO NINO FRANCHELLUCCI, 65",
+      "city": "ROMA",
+      "postcode": "00155"
+    },
+    "products": [
+      "62135"
+    ],
+    "labelPath": "C:\\Users\\Marco.DEV01\\Desktop\\brt-test\\data\\pdf\\etichetta_66437_1741809102638.pdf",
+    "trackingNumber": "0188153",
+    "approvedAt": "2025-03-12T19:51:42.639Z",
+    "shippingData": {
+      "orderId": "66437",
+      "firstName": "MARA",
+      "lastName": "MARONI",
+      "company": "ARCI CACCIA",
+      "address": "LARGO NINO FRANCHELLUCCI, 65",
+      "city": "ROMA",
+      "postcode": "00155",
+      "email": "mara.maroni62@gmail.com"
+    }
+  },
+  {
+    "id": 1741809180164,
+    "orderId": "66420",
+    "date": "2025-03-12T19:53:00.164Z",
+    "status": "approved",
+    "customer": {
+      "name": "ANTONELLA CACCHIATA",
+      "email": "antonella.cacchiata@gmail.com",
+      "address": "VIA DELLA GESSARA 12/E",
+      "city": "PERUGIA",
+      "postcode": "06131"
+    },
+    "products": [
+      "62595"
+    ],
+    "labelPath": "C:\\Users\\Marco.DEV01\\Desktop\\brt-test\\data\\pdf\\etichetta_66420_1741809199135.pdf",
+    "trackingNumber": "0188154",
+    "approvedAt": "2025-03-12T19:53:19.137Z",
+    "shippingData": {
+      "orderId": "66420",
+      "firstName": "ANTONELLA",
+      "lastName": "CACCHIATA",
+      "company": "",
+      "address": "VIA DELLA GESSARA 12/E",
+      "city": "PERUGIA",
+      "postcode": "06131",
+      "email": "antonella.cacchiata@gmail.com"
     }
   }
 ]
