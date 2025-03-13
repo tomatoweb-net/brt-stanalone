@@ -61,6 +61,7 @@ class BartoliniService {
                 }
             };
 
+            let response;
             // Se è un reso, usiamo l'endpoint corretto e una struttura dati diversa
             if (orderData.isReturn) {
                 console.log('📦 Creazione reso...');
@@ -108,10 +109,10 @@ class BartoliniService {
                         isBarcodeControlRowRequired: "0"
                     }
                 };
-                const response = await this.api.post('/shipments/return-shipment', returnRequestData);
+                response = await this.api.post('/shipments/return-shipment', returnRequestData);
             } else {
                 console.log('📦 Creazione spedizione...');
-                const response = await this.api.post('/shipments/shipment', requestData);
+                response = await this.api.post('/shipments/shipment', requestData);
             }
             
             if (!response.data?.createResponse) {
