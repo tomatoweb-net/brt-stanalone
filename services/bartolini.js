@@ -62,7 +62,7 @@ class BartoliniService {
             };
 
             // Se è un reso, usiamo l'endpoint corretto
-            const endpoint = orderData.isReturn ? '/shipments/return' : '/shipments/shipment';
+            const endpoint = orderData.isReturn ? '/shipments/return-shipment' : '/shipments/shipment';
             console.log(`📦 Creazione ${orderData.isReturn ? 'reso' : 'spedizione'}...`);
             
             const response = await this.api.post(endpoint, requestData);
