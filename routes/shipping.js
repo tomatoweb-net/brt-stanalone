@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const bartolini = require('../services/bartolini');
 const woocommerce = require('../services/woocommerce');
+const config = require('../config/config');
 
 // Middleware di autenticazione
 const authMiddleware = (req, res, next) => {
