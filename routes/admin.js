@@ -85,22 +85,8 @@ router.post('/approve/:id', authMiddleware, async (req, res) => {
 
         console.log('Dati spedizione:', shipmentData);
 
-        // Prepara i dati per la chiamata API Bartolini
-        const bartoliniData = {
-            orderId: returnRequest.orderId,
-            firstName: order.billing.first_name,
-            lastName: order.billing.last_name,
-            company: order.billing.company || '',
-            address: order.billing.address_1,
-            city: order.billing.city,
-            postcode: order.billing.postcode,
-            email: order.billing.email
-        };
-
-        console.log('Calling Bartolini API with data:', bartoliniData);
-
         // Chiamata API Bartolini per generare l'etichetta
-        const labelResult = await bartolini.generateLabel(bartoliniData);
+        const labelResult = await bartolini.generateLabel(shipmentData);
         console.log('Label generated successfully:', labelResult);
 
         // Aggiorna lo stato del reso
@@ -166,21 +152,23 @@ router.get('/label/:id', authMiddleware, async (req, res) => {
         const order = await woocommerce.getOrder(returnRequest.orderId);
         console.log('Recuperati dati ordine per etichetta:', returnRequest.orderId);
 
-        // Prepara i dati per la chiamata API Bartolini
-        const bartoliniData = {
+        // Prepara i dati per la spedizione
+        const shipmentData = {
             orderId: returnRequest.orderId,
-            firstName: order.billing.first_name,
-            lastName: order.billing.last_name,
-            company: order.billing.company || '',
-            address: order.billing.address_1,
-            city: order.billing.city,
-            postcode: order.billing.postcode,
-            email: order.billing.email
+            firstName: order.shipping.first_name,
+            lastName: order.shipping.last_name,
+            company: order.shipping.company || '',
+            address: order.shipping.address_1,
+            city: order.shipping.city,
+            postcode: order.shipping.postcode,
+            email: order.billing.email,
+            phone: order.billing.phone || '',
+            isReturn: true // Indica che è un reso
         };
 
         // Genera una nuova etichetta
         console.log('Richiedo etichetta a Bartolini per ordine:', returnRequest.orderId);
-        const labelResult = await bartolini.generateLabel(bartoliniData);
+        const labelResult = await bartolini.generateLabel(shipmentData);
 
         // Imposta gli headers per il download del PDF
         res.setHeader('Content-Type', 'application/pdf');
