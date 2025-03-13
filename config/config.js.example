@@ -1,0 +1,17 @@
+require('dotenv').config();
+
+module.exports = {
+    bartolini: {
+        userId: process.env.BRT_USER_ID,
+        password: process.env.BRT_PASSWORD
+    },
+    woocommerce: {
+        url: process.env.WC_URL,
+        consumerKey: process.env.WC_CONSUMER_KEY,
+        consumerSecret: process.env.WC_CONSUMER_SECRET,
+        version: 'wc/v3'
+    },
+    pdfPath: process.env.PDF_PATH || 'data/pdf',
+    adminUser: process.env.ADMIN_USER || 'admin',
+    adminPassword: process.env.ADMIN_PASSWORD || 'password'
+}; 

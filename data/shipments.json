@@ -116,5 +116,21 @@
     "phone": "3474147871",
     "createdAt": "2025-03-13T09:17:08.401Z",
     "status": "created"
+  },
+  {
+    "success": true,
+    "orderId": "66452",
+    "trackingNumber": "0188205",
+    "labelPath": "C:\\Users\\Marco.DEV01\\Desktop\\brt-test\\data\\pdf\\etichetta_66452_1741858138755.pdf",
+    "firstName": "ivana",
+    "lastName": "di giorgio",
+    "company": "",
+    "address": "VIA PERTILE 1",
+    "city": "BOLOGNA",
+    "postcode": "40137",
+    "email": "maiuri.bo@alice.it",
+    "phone": "0516235254",
+    "createdAt": "2025-03-13T09:28:58.757Z",
+    "status": "created"
   }
 ]

@@ -16,34 +16,48 @@ class BartoliniService {
 
     async generateLabel(orderData) {
         try {
-            // Determina se l'ordine è in contrassegno
-            const isCashOnDelivery = orderData.paymentMethod === 'cod' || orderData.paymentMethod === 'contrassegno';
-            const codAmount = isCashOnDelivery ? parseFloat(orderData.total) : 0;
-
             const requestData = {
                 account: {
                     userID: config.bartolini.userId,
                     password: config.bartolini.password
                 },
                 createData: {
-                    departureDepot: "102",
-                    senderCustomerCode: "1020117",
-                    deliveryFreightTypeCode: "DAP",
+                    network: "",
+                    departureDepot: 102,
+                    senderCustomerCode: config.bartolini.userId,
+                    deliveryFreightTypeCode: "EXW",
                     consigneeCompanyName: orderData.company || `${orderData.firstName} ${orderData.lastName}`,
                     consigneeAddress: orderData.address.substring(0, 35),
+                    consigneeCountryAbbreviationISOAlpha2: "IT",
+                    consigneeTelephone: orderData.phone?.replace(/[^0-9]/g, '') || '',
+                    consigneeEMail: orderData.email,
+                    isAlertRequired: 0,
+                    insuranceAmount: 0,
+                    quantityToBeInvoiced: 0.0,
+                    cashOnDelivery: 0,
+                    isCODMandatory: "0",
+                    notes: `${orderData.firstName} ${orderData.lastName}`,
+                    declaredParcelValue: 0,
+                    palletType1Number: 0,
+                    palletType2Number: 0,
+                    numericSenderReference: orderData.orderId,
+                    alphanumericSenderReference: `WS${orderData.orderId}`,
+                    numberOfParcels: 1,
+                    weightKG: 1.0,
+                    volumeM3: 0.0,
                     consigneeZIPCode: orderData.postcode,
                     consigneeCity: orderData.city,
-                    consigneeCountryAbbreviationISOAlpha2: "IT",
-                    numberOfParcels: 1,
-                    weightKG: 1,
-                    numericSenderReference: orderData.orderId.toString(),
-                    isCODMandatory: isCashOnDelivery ? 1 : 0,
-                    cashOnDelivery: codAmount,
-                    codCurrency: isCashOnDelivery ? "EUR" : null
+                    consigneeProvinceAbbreviation: orderData.province,
+                    pudoId: ""
                 },
                 isLabelRequired: 1,
                 labelParameters: {
-                    outputType: "PDF"
+                    outputType: "PDF",
+                    offsetX: 0,
+                    offsetY: 0,
+                    isBorderRequired: "1",
+                    isLogoRequired: "1",
+                    isBarcodeControlRowRequired: "0"
                 }
             };
 

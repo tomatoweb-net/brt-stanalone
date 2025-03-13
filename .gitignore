@@ -1,5 +1,25 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
+
+# Configuration
 config/config.js
+
+# Generated files
+data/pdf/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
 public/labels/
 *.pdf 
