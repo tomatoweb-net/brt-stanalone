@@ -61,11 +61,58 @@ class BartoliniService {
                 }
             };
 
-            // Se è un reso, usiamo l'endpoint corretto
-            const endpoint = orderData.isReturn ? '/shipments/return-shipment' : '/shipments/shipment';
-            console.log(`📦 Creazione ${orderData.isReturn ? 'reso' : 'spedizione'}...`);
-            
-            const response = await this.api.post(endpoint, requestData);
+            // Se è un reso, usiamo l'endpoint corretto e una struttura dati diversa
+            if (orderData.isReturn) {
+                console.log('📦 Creazione reso...');
+                const returnRequestData = {
+                    account: {
+                        userID: config.bartolini.userId,
+                        password: config.bartolini.password
+                    },
+                    returnShipmentData: {
+                        network: "",
+                        departureDepot: 102,
+                        senderCustomerCode: config.bartolini.userId,
+                        deliveryFreightTypeCode: "EXW",
+                        consigneeCompanyName: orderData.company || `${orderData.firstName} ${orderData.lastName}`,
+                        consigneeAddress: orderData.address.substring(0, 35),
+                        consigneeCountryAbbreviationISOAlpha2: "IT",
+                        consigneeTelephone: orderData.phone?.replace(/[^0-9]/g, '') || '',
+                        consigneeEMail: orderData.email,
+                        isAlertRequired: 0,
+                        insuranceAmount: 0,
+                        quantityToBeInvoiced: 0.0,
+                        cashOnDelivery: 0,
+                        isCODMandatory: "0",
+                        notes: `${orderData.firstName} ${orderData.lastName}`,
+                        declaredParcelValue: 0,
+                        palletType1Number: 0,
+                        palletType2Number: 0,
+                        numericSenderReference: orderData.orderId,
+                        alphanumericSenderReference: `WS${orderData.orderId}`,
+                        numberOfParcels: 1,
+                        weightKG: 1.0,
+                        volumeM3: 0.0,
+                        consigneeZIPCode: orderData.postcode,
+                        consigneeCity: orderData.city,
+                        consigneeProvinceAbbreviation: orderData.province,
+                        pudoId: ""
+                    },
+                    isLabelRequired: 1,
+                    labelParameters: {
+                        outputType: "PDF",
+                        offsetX: 0,
+                        offsetY: 0,
+                        isBorderRequired: "1",
+                        isLogoRequired: "1",
+                        isBarcodeControlRowRequired: "0"
+                    }
+                };
+                const response = await this.api.post('/shipments/return-shipment', returnRequestData);
+            } else {
+                console.log('📦 Creazione spedizione...');
+                const response = await this.api.post('/shipments/shipment', requestData);
+            }
             
             if (!response.data?.createResponse) {
                 throw new Error('Risposta API non valida');
