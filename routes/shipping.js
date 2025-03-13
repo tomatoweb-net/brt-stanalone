@@ -195,18 +195,21 @@ router.get('/label/:orderId', authMiddleware, async (req, res) => {
             throw new Error('Etichetta non trovata');
         }
 
-        console.log('✅ Invio etichetta:', shipment.labelPath);
-        
         // Verifica che il file esista
-        if (!fs.existsSync(shipment.labelPath)) {
-            console.error('❌ File etichetta non trovato:', shipment.labelPath);
+        const pdfPath = path.join(process.cwd(), config.pdfPath, path.basename(shipment.labelPath));
+        if (!fs.existsSync(pdfPath)) {
+            console.error(`❌ File etichetta non trovato: ${pdfPath}`);
             throw new Error('File etichetta non trovato');
         }
 
+        // Leggi il file PDF
+        const pdfData = fs.readFileSync(pdfPath);
+        console.log(`✅ Invio etichetta: ${pdfPath}`);
+        
         // Invia il file PDF
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="label_${orderId}.pdf"`);
-        fs.createReadStream(shipment.labelPath).pipe(res);
+        res.end(pdfData);
 
     } catch (error) {
         console.error('❌ Errore download etichetta:', error);

@@ -117,10 +117,11 @@ class BartoliniService {
 
             // Salva il PDF
             const pdfFileName = `etichetta_${orderData.orderId}_${Date.now()}.pdf`;
-            const pdfPath = path.join(config.pdfPath, pdfFileName);
+            const pdfPath = path.join(process.cwd(), config.pdfPath, pdfFileName);
             
-            if (!fs.existsSync(config.pdfPath)) {
-                fs.mkdirSync(config.pdfPath, { recursive: true });
+            // Assicurati che la directory esista
+            if (!fs.existsSync(path.join(process.cwd(), config.pdfPath))) {
+                fs.mkdirSync(path.join(process.cwd(), config.pdfPath), { recursive: true });
             }
 
             fs.writeFileSync(pdfPath, pdfData);
@@ -134,7 +135,7 @@ class BartoliniService {
             console.log(`✅ PDF salvato con successo (${labelSource}), dimensione:`, stats.size, 'bytes');
             
             return {
-                pdfPath,
+                pdfPath: pdfFileName, // Ritorniamo solo il nome del file
                 trackingNumber: parcelID,
                 success: true
             };
