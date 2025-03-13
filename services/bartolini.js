@@ -61,9 +61,11 @@ class BartoliniService {
                 }
             };
 
-            // Prima creiamo la spedizione
-            console.log('📦 Creazione spedizione...');
-            const response = await this.api.post('/shipments/shipment', requestData);
+            // Se è un reso, usiamo l'endpoint corretto
+            const endpoint = orderData.isReturn ? '/shipments/return' : '/shipments/shipment';
+            console.log(`📦 Creazione ${orderData.isReturn ? 'reso' : 'spedizione'}...`);
+            
+            const response = await this.api.post(endpoint, requestData);
             
             if (!response.data?.createResponse) {
                 throw new Error('Risposta API non valida');

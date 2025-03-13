@@ -69,6 +69,22 @@ router.post('/approve/:id', authMiddleware, async (req, res) => {
         const order = await woocommerce.getOrder(returnRequest.orderId);
         console.log('WooCommerce order data:', order);
 
+        // Prepara i dati per la spedizione
+        const shipmentData = {
+            orderId: returnRequest.orderId,
+            firstName: order.shipping.first_name,
+            lastName: order.shipping.last_name,
+            company: order.shipping.company || '',
+            address: order.shipping.address_1,
+            city: order.shipping.city,
+            postcode: order.shipping.postcode,
+            email: order.billing.email,
+            phone: order.billing.phone || '',
+            isReturn: true // Indica che è un reso
+        };
+
+        console.log('Dati spedizione:', shipmentData);
+
         // Prepara i dati per la chiamata API Bartolini
         const bartoliniData = {
             orderId: returnRequest.orderId,
@@ -92,7 +108,7 @@ router.post('/approve/:id', authMiddleware, async (req, res) => {
         returnRequest.labelPath = labelResult.pdfPath;
         returnRequest.trackingNumber = labelResult.trackingNumber;
         returnRequest.approvedAt = new Date();
-        returnRequest.shippingData = bartoliniData;
+        returnRequest.shippingData = shipmentData;
 
         // Salva le modifiche
         fs.writeFileSync(config.dataPath, JSON.stringify(returns, null, 2));
